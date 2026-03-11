@@ -1,0 +1,14 @@
+{
+    "title": "New Project",
+    "scenes": {
+        "default.xml": {
+            "path": "default.xml"
+        }
+    },
+    "resources": {
+        "icon.png": {
+            "path": "icon.png",
+            "type": "image/png"
+        }
+    }
+}

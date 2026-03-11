@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
 # Human-Engine project
+import json
 from copy import deepcopy
-
 from bs4 import BeautifulSoup
+from json import dump
 import os
 import base64
 
-default_config = """
-<config>
-    <title>New Project</title>
-    <scenes>
-        <scene>
-            <path>default.xml</path>
-        </scene>
-    </scenes>
-    <resources>
-        <resource>
-            <path>icon.png</path>
-            <type>image/png</type>
-        </resource>
-    </resources>
-</config>
-"""
+default_config = {
+    "title": "New Project",
+    "scenes": {
+        "default.xml": {
+            "path": "default.xml"
+        }
+    },
+    "resources": {
+        "icon.png": {
+            "path": "icon.png",
+            "type":"image/png"
+        }
+    }
+}
 
 default_scene = """
 <scene>
@@ -43,15 +42,8 @@ class Project:
     """Human Engine Project"""
     def __init__(self, project_path: str = "new_project"):
         self.scenes = {"default.xml": BeautifulSoup(default_scene, "xml")}
-        self.config = BeautifulSoup(default_config, "xml")
+        self.config = default_config
         self.project_path = project_path
-
-    def get_resource(self, path: str):
-        resources = self.config.resources.find_all("resource")
-        for resource in resources:
-            if resource.path.text == path:
-                return resource
-        raise FileNotFoundError
 
     def get_path(self, path: str):
         return os.path.normpath(os.path.join(self.project_path, path))
@@ -66,37 +58,31 @@ class Project:
                 continue
             src = src.strip("{}")
             prefix, data = src.split(",", 1)
-            resource = self.get_resource(data)
-            with open(self.get_path(resource.path.text), "rb") as f:
+            resource = self.config["resources"][data]
+            with open(self.get_path(resource["path"]), "rb") as f:
                 data = base64.b64encode(f.read()).decode("utf-8")
-            prefix = prefix.replace("#", resource.type.text, 1)
+            prefix = prefix.replace("#", resource["type"], 1)
             tag["src"] = f"{prefix},{data}"
         return scene
 
     def compile(self):
         data = ""
         # compile to standalone html file
-        for scene in self.config.scenes.find_all(recursive=False):
-            with open(self.get_path(scene.path.text)) as f:
+        for name, scene in self.config["scenes"].items():
+            with open(self.get_path(scene["path"])) as f:
                 compiled_scene = self.compile_scene(BeautifulSoup(f.read(), "xml"))
             # later: implement scene switching
             data += compiled_scene.prettify()
         return data
 
     def save(self):
-        self.config.config.scenes.clear()
-        for name, scene in self.scenes.items():
-            scene_tag = self.config.new_tag("scene")
-            path_tag = self.config.new_tag("path")
-            path_tag.string = name
-            scene_tag.append(path_tag)
-            self.config.config.scenes.append(scene_tag)
+        for name, data in self.scenes.items():
+            scene = self.config["scenes"][name]
+            with open(self.get_path(scene["path"]), "w") as f:
+                f.write(data.prettify())
 
-            with open(self.get_path(name), "w") as f:
-                f.write(scene.prettify())
-
-        with open(self.get_path("project.xml"), "w") as f:
-            f.write(self.config.prettify())
+        with open(self.get_path("project.json"), "w") as f:
+            json.dump(self.config, f, indent=4)
 
 
 
