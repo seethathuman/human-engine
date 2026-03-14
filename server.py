@@ -11,9 +11,14 @@ def index():
     global DATA
     return DATA
 
+@app.errorhandler(404)
+def error404(path: str):
+    global DATA
+    return DATA
+
 def run():
     global app
-    global port
+    global PORT
     app.run(port=PORT, use_reloader=False)
 
 def start_server(data: str = "<p>hello world!<p>", port: int = 5000):
@@ -30,10 +35,8 @@ def stop_server():
     server_process.join()
 
 server_process = Process(target=run)
-DATA = "<p>hello world<p>"
+DATA = ""
 PORT = 5000
 if __name__ == "__main__":
-    with open("hello-world.html", "r") as f:
-        data = f.read()
-    start_server(data)
+    start_server()
     stop_server()
