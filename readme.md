@@ -18,7 +18,7 @@ to run a webpage.
 
 ### Requirements
  - beautifulsoup4 (parse html)
- - lxml (xml parser used by bs4)
+ - lxml
  - PySide6 (qt gui editor)
  - flask (web preview)
 
@@ -29,10 +29,12 @@ to run a webpage.
 git clone https://github.com/seethathuman/human-engine.git
 cd human-engine
 ```
+
 2. Install the dependencies
 ```bash
 python3 -m pip install -r requirements.txt
 ```
+
 3. Run the editor
 ```bash
 python3 ./main.py
