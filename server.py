@@ -3,7 +3,7 @@
 
 from flask import Flask
 from multiprocessing import Process
-
+from time import sleep
 app = Flask(__name__)
 
 @app.route("/")
@@ -27,16 +27,22 @@ def start_server(data: str = "<p>hello world!<p>", port: int = 5000):
     global PORT
     PORT = port
     DATA = data
+    if server_process:
+        stop_server()
+    server_process = Process(target=run)
     server_process.start()
+    sleep(0.25)
 
 def stop_server():
     global server_process
-    server_process.terminate()
-    server_process.join()
+    if server_process:
+        server_process.terminate()
+        server_process.join()
+    server_process = None
 
-server_process = Process(target=run)
-DATA = ""
-PORT = 5000
+server_process: Process | None = None
+DATA: str = ""
+PORT: int = 5000
 if __name__ == "__main__":
     start_server()
     stop_server()

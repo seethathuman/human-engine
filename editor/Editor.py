@@ -17,7 +17,7 @@ class Editor(QMainWindow):
     def __init__(self, project: Project):
         super().__init__()
         self.setWindowTitle("Human Engine Project Editor")
-        self.setWindowIcon(QIcon("../resources/icon.png"))
+        self.setWindowIcon(QIcon("resources/icon.png"))
 
         self.project = project
         self.toolbar_visible = True
@@ -30,11 +30,11 @@ class Editor(QMainWindow):
         self.file_menu = self.menubar.addMenu("&File")
         self.view_menu = self.menubar.addMenu("&View")
 
-        toggle_toolbar_action = QAction("Toggle &Toolbar", self)
-        toggle_toolbar_action.setIcon(QIcon.fromTheme("checkbox"))
-        toggle_toolbar_action.setStatusTip("Toggle the toolbar.")
-        toggle_toolbar_action.triggered.connect(self._toggle_toolbar)
-        self.view_menu.addAction(toggle_toolbar_action)
+        self.toggle_toolbar_action = QAction("Toggle &Toolbar", self)
+        self.toggle_toolbar_action.setIcon(QIcon.fromTheme("checkbox"))
+        self.toggle_toolbar_action.setStatusTip("Toggle the toolbar.")
+        self.toggle_toolbar_action.triggered.connect(self._toggle_toolbar)
+        self.view_menu.addAction(self.toggle_toolbar_action)
 
         exit_action = QAction("E&xit", self)
         exit_action.setIcon(QIcon.fromTheme(QIcon.ThemeIcon.ApplicationExit))
@@ -75,28 +75,31 @@ class Editor(QMainWindow):
         self.splitDockWidget(self.web_dock, self.file_tabs_dock, Qt.Orientation.Horizontal)
 
     def _refresh_browser(self):
+        self.web.hide()
         data = self.project.compile()
         with open(self.project.get_path("_.html"), "w") as f:
             f.write(data)
         server.stop_server()
         server.start_server(port=5337, data=data)
         self.web.reload()
+        self.web.show()
 
     def _toggle_toolbar(self):
-        if self.toolbar_visible: self.toolbar.hide()
-        else:                    self.toolbar.show()
+        if self.toolbar_visible:
+            self.toolbar.hide()
+            self.toggle_toolbar_action.setIcon(QIcon.fromTheme(QIcon.ThemeIcon.ProcessStop))
+        else:
+            self.toolbar.show()
+            self.toggle_toolbar_action.setIcon(QIcon.fromTheme("checkbox"))
         self.toolbar_visible ^= 1
 
     def _stop(self):
         reply = QMessageBox.question(
-            self, "Exit", "Do you want to save your changes before exiting?",
-            QMessageBox.StandardButton.Save |
+            self, "Exit", "Are you sure you want to exit and discard unsaved changes?",
             QMessageBox.StandardButton.Discard |
-            QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Save
+            QMessageBox.StandardButton.Cancel
         )
         if reply == QMessageBox.StandardButton.Cancel: return
-        if reply == QMessageBox.StandardButton.Save: self._save_project()
         QApplication.quit()
 
     def _save_project(self):
@@ -114,14 +117,19 @@ class Editor(QMainWindow):
         print("clean exit")
 
 def exception_hook(exc_type: type[BaseException], exc_value: BaseException, exc_traceback):
-    error_msg = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
     print("Exception caught!")
+    error_msg = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    traceback.print_exception(exc_type, exc_value, exc_traceback)
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Icon.Critical)
-    msg.setWindowTitle(f"{exc_value}")
-    msg.setText(f"A {exc_type.__name__} has occurred in the application.")
+    msg.setWindowTitle(f"{exc_type.__name__}")
+    msg.setText(f"An uncaught {exc_type.__name__} has occurred.")
     msg.setDetailedText(error_msg)
-    msg.exec()
-    raise exc_value
+    msg.setStandardButtons(QMessageBox.StandardButton.Close | QMessageBox.StandardButton.Ignore)
+    msg.setDefaultButton(QMessageBox.StandardButton.Close)
+    result = msg.exec()
+    if result == QMessageBox.StandardButton.Ignore:
+        return
+    QApplication.quit()
 
 sys.excepthook = exception_hook
