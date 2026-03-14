@@ -18,45 +18,88 @@ class Editor(QMainWindow):
         self.setWindowIcon(QIcon("icon.png"))
 
         self.project = project
-        self.unsaved = True
+        self.toolbar_visible = True
 
-        self.file_tabs = FileTabs()
-        self.project_browser = ProjectBrowser(project, self.file_tabs)
-        self.web = QWebEngineView()
-        self.web.load(QUrl("http://127.0.0.1:1234"))
-
+        # Initialize Menu and Toolbar
+        self.setStatusBar(QStatusBar(self))
         self.toolbar = QToolBar()
         self.addToolBar(self.toolbar)
+        self.menubar = self.menuBar()
+        self.file_menu = self.menubar.addMenu("File")
+        self.view_menu = self.menubar.addMenu("View")
 
-        button_action = QAction("foo", self)
-        button_action.setStatusTip("lorem ipsum dolor sit amet")
-        button_action.triggered.connect(QApplication.quit)
-        self.toolbar.addAction(button_action)
+        toggle_toolbar_action = QAction("Toggle Toolbar", self)
+        toggle_toolbar_action.setIcon(QIcon.fromTheme("checkbox"))
+        toggle_toolbar_action.setStatusTip("Toggle the toolbar.")
+        toggle_toolbar_action.triggered.connect(self._toggle_toolbar)
+        self.view_menu.addAction(toggle_toolbar_action)
+
+        exit_action = QAction("Exit", self)
+        exit_action.setIcon(QIcon.fromTheme(QIcon.ThemeIcon.ApplicationExit))
+        exit_action.setStatusTip("Exit the editor.")
+        exit_action.triggered.connect(self._stop)
+        self.toolbar.addAction(exit_action)
+        self.file_menu.addAction(exit_action)
+
+        # Initialize Docks
+        self.file_tabs = FileTabs()
+        self.project_browser = ProjectBrowser(project, self.file_tabs)
+
+        web_container = QWidget()
+        web_layout = QVBoxLayout(web_container)
+        self.web = QWebEngineView()
+        self.web.load(QUrl("http://127.0.0.1:5337"))
+        self.web_toolbar = QToolBar()
+        refresh_action = QAction("Reload", self)
+        refresh_action.setIcon(QIcon.fromTheme(QIcon.ThemeIcon.ViewRefresh))
+        refresh_action.setStatusTip("Reload the preview.")
+        refresh_action.triggered.connect(self._refresh_browser)
+        self.web_toolbar.addAction(refresh_action)
+        self.file_menu.addAction(refresh_action)
+        web_layout.addWidget(self.web_toolbar)
+        web_layout.addWidget(self.web)
 
         self.project_browser_dock = QDockWidget("Project Browser",)
         self.project_browser_dock.setWidget(self.project_browser)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.project_browser_dock)
 
         self.web_dock = QDockWidget("Web Preview")
-        self.web_dock.setWidget(self.web)
+        self.web_dock.setWidget(web_container)
         self.splitDockWidget(self.project_browser_dock, self.web_dock, Qt.Orientation.Horizontal)
 
         self.file_tabs_dock = QDockWidget("Editor")
         self.file_tabs_dock.setWidget(self.file_tabs)
         self.splitDockWidget(self.web_dock, self.file_tabs_dock, Qt.Orientation.Horizontal)
 
-        self.setStatusBar(QStatusBar(self))
+    def _refresh_browser(self):
+        self.web.reload()
 
-    def stop(self):
-        if self.unsaved:
-            reply = QMessageBox.question(
-                self, "Exit", "Do you want to save your unsaved changes before exiting?",
-                QMessageBox.StandardButton.Save,
-            )
+    def _toggle_toolbar(self):
+        if self.toolbar_visible:
+            self.toolbar.hide()
+        else:
+            self.toolbar.show()
+        self.toolbar_visible ^= 1
+
+    def _stop(self):
+        reply = QMessageBox.question(
+            self, "Exit", "Do you want to save your changes before exiting?",
+            QMessageBox.StandardButton.Save |
+            QMessageBox.StandardButton.Discard |
+            QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Save
+        )
+        if reply == QMessageBox.StandardButton.Cancel: return
+        if reply == QMessageBox.StandardButton.Save: self._save_project()
+        QApplication.quit()
+
+    def _save_project(self):
+        # TODO: implement project saving and loading
+        pass
 
     def start(self):
         data = self.project.compile()
-        server.start_server(port=1234, data=data)
+        server.start_server(port=5337, data=data)
         self.resize(1000, 700)
         self.show()
         app.exec()
