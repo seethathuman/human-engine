@@ -4,9 +4,10 @@ from project import Project
 import os.path
 import server
 import sys
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtWidgets import *
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtGui import QIcon, QAction
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtWidgets import *
+from PySide6.QtWebEngineWidgets import QWebEngineView
 
 app = QApplication(sys.argv)
 
@@ -14,27 +15,44 @@ class Editor(QMainWindow):
     def __init__(self, project: Project):
         super().__init__()
         self.setWindowTitle("Human Engine Project Editor")
-        self.project = project
+        self.setWindowIcon(QIcon("icon.png"))
 
-        layout = QVBoxLayout(self)
+        self.project = project
+        self.unsaved = True
 
         self.file_tabs = FileTabs()
         self.project_browser = ProjectBrowser(project, self.file_tabs)
         self.web = QWebEngineView()
         self.web.load(QUrl("http://127.0.0.1:1234"))
 
-        self.project_browser_dock = QDockWidget("Project Browser", self)
+        self.toolbar = QToolBar()
+        self.addToolBar(self.toolbar)
+
+        button_action = QAction("foo", self)
+        button_action.setStatusTip("lorem ipsum dolor sit amet")
+        button_action.triggered.connect(QApplication.quit)
+        self.toolbar.addAction(button_action)
+
+        self.project_browser_dock = QDockWidget("Project Browser",)
         self.project_browser_dock.setWidget(self.project_browser)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.project_browser_dock)
 
-        self.web_dock = QDockWidget("Web Preview", self)
+        self.web_dock = QDockWidget("Web Preview")
         self.web_dock.setWidget(self.web)
         self.splitDockWidget(self.project_browser_dock, self.web_dock, Qt.Orientation.Horizontal)
 
-        self.file_tabs_dock = QDockWidget("Editor", self)
+        self.file_tabs_dock = QDockWidget("Editor")
         self.file_tabs_dock.setWidget(self.file_tabs)
         self.splitDockWidget(self.web_dock, self.file_tabs_dock, Qt.Orientation.Horizontal)
 
+        self.setStatusBar(QStatusBar(self))
+
+    def stop(self):
+        if self.unsaved:
+            reply = QMessageBox.question(
+                self, "Exit", "Do you want to save your unsaved changes before exiting?",
+                QMessageBox.StandardButton.Save,
+            )
 
     def start(self):
         data = self.project.compile()
@@ -43,6 +61,7 @@ class Editor(QMainWindow):
         self.show()
         app.exec()
         server.stop_server()
+        print("clean exit")
 
 class FileTabs(QTabWidget):
     def __init__(self):

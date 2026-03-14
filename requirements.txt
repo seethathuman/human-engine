@@ -1,6 +1,4 @@
 beautifulsoup4
 lxml
-pywebview
-PyQt6
-PyQt6-WebEngine
+PySide6
 flask
