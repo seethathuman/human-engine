@@ -32,20 +32,20 @@ class ProjectBrowser(QTreeWidget):
         resources = [entry["path"] for entry in self.project.config["resources"].values()]
 
         for path in scenes:
-            item = QTreeWidgetItem([os.path.basename(path)])
-            item.setData(0, Qt.ItemDataRole.UserRole, path)
+            item = QTreeWidgetItem([path])
+            item.setData(0, Qt.ItemDataRole.UserRole, self.project.get_path(path))
             scenes_root.addChild(item)
 
         for path in resources:
-            item = QTreeWidgetItem([os.path.basename(path)])
-            item.setData(0, Qt.ItemDataRole.UserRole, path)
+            item = QTreeWidgetItem([path])
+            item.setData(0, Qt.ItemDataRole.UserRole, self.project.get_path(path))
             resources_root.addChild(item)
 
         for root, _, files in os.walk(self.project.project_path):
             for f in files:
                 full = os.path.join(root, f)
 
-                if full in scenes or full in resources:
+                if f in scenes or f in resources or f in ["_.html"]:
                     continue
 
                 item = QTreeWidgetItem([f])

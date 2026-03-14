@@ -1,94 +1,69 @@
 #!/usr/bin/env python3
-# Human-Engine project
+
 import json
-from copy import deepcopy
-from bs4 import BeautifulSoup
-from json import dump
-import os
+from bs4 import BeautifulSoup, Tag
+from resources.templates import DEFAULT_CONFIG, DEFAULT_SCENES
 import base64
-
-default_config = {
-    "title": "New Project",
-    "scenes": {
-        "default.xml": {
-            "path": "default.xml"
-        }
-    },
-    "resources": {
-        "icon.png": {
-            "path": "icon.png",
-            "type":"image/png"
-        }
-    }
-}
-
-default_scene = """
-<scene>
-    <div class="title">
-        <h1>Hello world! </h1>
-        <img src="{data:#;base64,icon.png}" alt="My Image"/>
-    </div>
-    <ul style="font-size: 20px">
-        <li> lorem ipsum dolor sit amet</li>
-        <li> the quick brown fox jumps over a lazy dog </li>
-        <li> test test 123 </li>
-        <li> qwertyuiop1234567890!@#$%^&*()_+</li>
-        <li> typewriter</li>
-    </ul>
-</scene>
-"""
+import os
 
 class Project:
     """Human Engine Project"""
     def __init__(self, project_path: str = "new_project"):
-        self.scenes = {"default.xml": BeautifulSoup(default_scene, "xml")}
-        self.config = default_config
         self.project_path = project_path
+        self.config = {}
+        if not os.path.exists(project_path):
+            self.create_project(DEFAULT_CONFIG, DEFAULT_SCENES)
+        self.load_project()
 
-    def get_path(self, path: str):
+    def create_project(self, config: dict, scenes: dict) -> None:
+        os.mkdir(self.project_path)
+        with open(self.get_path("project.json"), "w") as f:
+            json.dump(config, f)
+
+        for scene, data in scenes.items():
+            with open(self.get_path(scene), "w") as f:
+                json.dump({"content": data}, f)
+
+    def load_project(self) -> None:
+        with open(self.get_path("project.json")) as f:
+            self.config = json.load(f)
+
+    def get_path(self, path: str) -> str:
         return os.path.normpath(os.path.join(self.project_path, path))
 
-    def compile_scene(self, scene: BeautifulSoup):
-        # replace all assets with base64 representation
-        scene = deepcopy(scene)
-        scene.scene.name = "div"
-        for tag in scene.find_all(src=True):
-            src = tag["src"]
-            if not (src.startswith("{data:#;base64,") and  src.endswith("}")):
-                continue
-            src = src.strip("{}")
-            prefix, data = src.split(",", 1)
-            resource = self.config["resources"][data]
-            with open(self.get_path(resource["path"]), "rb") as f:
-                data = base64.b64encode(f.read()).decode("utf-8")
-            prefix = prefix.replace("#", resource["type"], 1)
-            tag["src"] = f"{prefix},{data}"
-        return scene
+    def compile_content(self, content: list | str, tag: Tag, soup: BeautifulSoup) -> Tag:
+        if isinstance(content, str): # no children
+            tag.string = content
+            return tag
 
-    def compile(self):
-        data = BeautifulSoup()
-        # compile to standalone html file
+        for element in content: # construct contents of a bs4 tag
+            properties = element["properties"].copy() # save a local copy to modify
+            if "src-path" in properties: # base64 encode resource
+                resource = self.config["resources"][properties["src-path"]]
+                with open(self.get_path(resource["path"]), "rb") as f:
+                    data = f.read()
+                properties["src"] = f"data:{resource["type"]};base64,{base64.b64encode(data)}"
+                del properties["src-path"]
+            if "style" in properties:
+                properties["style"] = ";".join([f"{k}:{v}" for k, v in properties["style"].items()])
+
+            child = soup.new_tag(element["type"], **properties)
+            self.compile_content(element["content"], child, soup)
+            tag.append(child)
+        return tag
+
+    def compile(self) -> str:
+        soup = BeautifulSoup("<head/><body/>", "lxml")
         for name, scene in self.config["scenes"].items():
             with open(self.get_path(scene["path"])) as f:
-                compiled_scene = self.compile_scene(BeautifulSoup(f.read(), "xml"))
-            tag = data.new_tag("div", id=f"scene_{name}")
-            tag.append(compiled_scene)
-            data.body.append(tag)
-        return data.prettify()
+                data = json.load(f)
+            scene_tag = soup.new_tag("div")
+            scene_tag["class"] = "scene-root"
+            scene_tag["id"] = f"scene-{name}"
+            self.compile_content(data["content"], scene_tag, soup)
+            soup.body.append(scene_tag)
+        return soup.prettify()
 
     def save(self):
-        for name, data in self.scenes.items():
-            scene = self.config["scenes"][name]
-            with open(self.get_path(scene["path"]), "w") as f:
-                f.write(data.prettify())
-
         with open(self.get_path("project.json"), "w") as f:
             json.dump(self.config, f, indent=4)
-
-
-
-
-
-
-
-
