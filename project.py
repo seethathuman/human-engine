@@ -66,14 +66,15 @@ class Project:
         return scene
 
     def compile(self):
-        data = ""
+        data = BeautifulSoup()
         # compile to standalone html file
         for name, scene in self.config["scenes"].items():
             with open(self.get_path(scene["path"])) as f:
                 compiled_scene = self.compile_scene(BeautifulSoup(f.read(), "xml"))
-            # later: implement scene switching
-            data += compiled_scene.prettify()
-        return data
+            tag = data.new_tag("div", id=f"scene_{name}")
+            tag.append(compiled_scene)
+            data.body.append(tag)
+        return data.prettify()
 
     def save(self):
         for name, data in self.scenes.items():

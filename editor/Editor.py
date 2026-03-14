@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 from project import Project
-import os.path
+from editor.FileTabs import FileTabs
+from editor.ProjectBrowser import ProjectBrowser
 import server
 import sys
+import traceback
 from PySide6.QtGui import QIcon, QAction
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QUrl, QSize
 from PySide6.QtWidgets import *
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
@@ -15,7 +17,7 @@ class Editor(QMainWindow):
     def __init__(self, project: Project):
         super().__init__()
         self.setWindowTitle("Human Engine Project Editor")
-        self.setWindowIcon(QIcon("icon.png"))
+        self.setWindowIcon(QIcon("../resources/icon.png"))
 
         self.project = project
         self.toolbar_visible = True
@@ -25,16 +27,16 @@ class Editor(QMainWindow):
         self.toolbar = QToolBar()
         self.addToolBar(self.toolbar)
         self.menubar = self.menuBar()
-        self.file_menu = self.menubar.addMenu("File")
-        self.view_menu = self.menubar.addMenu("View")
+        self.file_menu = self.menubar.addMenu("&File")
+        self.view_menu = self.menubar.addMenu("&View")
 
-        toggle_toolbar_action = QAction("Toggle Toolbar", self)
+        toggle_toolbar_action = QAction("Toggle &Toolbar", self)
         toggle_toolbar_action.setIcon(QIcon.fromTheme("checkbox"))
         toggle_toolbar_action.setStatusTip("Toggle the toolbar.")
         toggle_toolbar_action.triggered.connect(self._toggle_toolbar)
         self.view_menu.addAction(toggle_toolbar_action)
 
-        exit_action = QAction("Exit", self)
+        exit_action = QAction("E&xit", self)
         exit_action.setIcon(QIcon.fromTheme(QIcon.ThemeIcon.ApplicationExit))
         exit_action.setStatusTip("Exit the editor.")
         exit_action.triggered.connect(self._stop)
@@ -50,12 +52,13 @@ class Editor(QMainWindow):
         self.web = QWebEngineView()
         self.web.load(QUrl("http://127.0.0.1:5337"))
         self.web_toolbar = QToolBar()
+        self.web_toolbar.setIconSize(QSize(16, 16))
         refresh_action = QAction("Reload", self)
         refresh_action.setIcon(QIcon.fromTheme(QIcon.ThemeIcon.ViewRefresh))
         refresh_action.setStatusTip("Reload the preview.")
         refresh_action.triggered.connect(self._refresh_browser)
         self.web_toolbar.addAction(refresh_action)
-        self.file_menu.addAction(refresh_action)
+        self.view_menu.addAction(refresh_action)
         web_layout.addWidget(self.web_toolbar)
         web_layout.addWidget(self.web)
 
@@ -72,13 +75,16 @@ class Editor(QMainWindow):
         self.splitDockWidget(self.web_dock, self.file_tabs_dock, Qt.Orientation.Horizontal)
 
     def _refresh_browser(self):
+        data = self.project.compile()
+        with open(self.project.get_path("_.html"), "w") as f:
+            f.write(data)
+        server.stop_server()
+        server.start_server(port=5337, data=data)
         self.web.reload()
 
     def _toggle_toolbar(self):
-        if self.toolbar_visible:
-            self.toolbar.hide()
-        else:
-            self.toolbar.show()
+        if self.toolbar_visible: self.toolbar.hide()
+        else:                    self.toolbar.show()
         self.toolbar_visible ^= 1
 
     def _stop(self):
@@ -99,99 +105,23 @@ class Editor(QMainWindow):
 
     def start(self):
         data = self.project.compile()
+        with open(self.project.get_path("_.html"), "w") as f:
+            f.write(data)
         server.start_server(port=5337, data=data)
-        self.resize(1000, 700)
         self.show()
         app.exec()
         server.stop_server()
         print("clean exit")
 
-class FileTabs(QTabWidget):
-    def __init__(self):
-        super().__init__()
+def exception_hook(exc_type: type[BaseException], exc_value: BaseException, exc_traceback):
+    error_msg = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    print("Exception caught!")
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Icon.Critical)
+    msg.setWindowTitle(f"{exc_value}")
+    msg.setText(f"A {exc_type.__name__} has occurred in the application.")
+    msg.setDetailedText(error_msg)
+    msg.exec()
+    raise exc_value
 
-        self.setTabsClosable(True)
-        self.tabCloseRequested.connect(self.close_tab)
-        self.open_files = {}
-
-    def open(self, path):
-        if path in self.open_files:
-            self.setCurrentWidget(self.open_files[path])
-            return
-
-        editor = QTextEdit()
-
-        with open(path, "r", encoding="utf8") as f:
-            editor.setText(f.read())
-
-        name = os.path.basename(path)
-
-        self.addTab(editor, name)
-        self.setCurrentWidget(editor)
-
-        self.open_files[path] = editor
-
-    def close_tab(self, index):
-        widget = self.widget(index)
-
-        for k, v in list(self.open_files.items()):
-            if v == widget:
-                del self.open_files[k]
-
-        self.removeTab(index)
-
-
-class ProjectBrowser(QTreeWidget):
-    def __init__(self, project, file_tabs):
-        super().__init__()
-
-        self.project = project
-        self.open_file_callback = file_tabs.open
-
-        self.setHeaderHidden(True)
-
-        self.itemDoubleClicked.connect(self.open_item)
-
-        self.populate()
-
-    def populate(self):
-        self.clear()
-
-        scenes_root = QTreeWidgetItem(["Scenes"])
-        resources_root = QTreeWidgetItem(["Resources"])
-        other_root = QTreeWidgetItem(["Project Directory"])
-
-        self.addTopLevelItem(scenes_root)
-        self.addTopLevelItem(resources_root)
-        self.addTopLevelItem(other_root)
-
-        scenes = [entry["path"] for entry in self.project.config["scenes"].values()]
-        resources = [entry["path"] for entry in self.project.config["resources"].values()]
-
-        for path in scenes:
-            item = QTreeWidgetItem([os.path.basename(path)])
-            item.setData(0, Qt.ItemDataRole.UserRole, path)
-            scenes_root.addChild(item)
-
-        for path in resources:
-            item = QTreeWidgetItem([os.path.basename(path)])
-            item.setData(0, Qt.ItemDataRole.UserRole, path)
-            resources_root.addChild(item)
-
-        for root, _, files in os.walk(self.project.project_path):
-            for f in files:
-                full = os.path.join(root, f)
-
-                if full in scenes or full in resources:
-                    continue
-
-                item = QTreeWidgetItem([f])
-                item.setData(0, Qt.ItemDataRole.UserRole, full)
-                other_root.addChild(item)
-
-        self.expandAll()
-
-    def open_item(self, item):
-        path = item.data(0, Qt.ItemDataRole.UserRole)
-        if path:
-            self.open_file_callback(path)
+sys.excepthook = exception_hook
