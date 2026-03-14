@@ -2,17 +2,18 @@
 
 ## Introduction
 
-An easier way to make self-contained web games.
+Human Engine is a lightweight game engine based on Qt and Python3 
+designed to be an easier way to make self-contained web games with
+visual based code.
 
-Generate a single self-contained HTML file with all assets required
+Generates a single self-contained HTML file with all assets required
 to run a webpage.
 
 ### Features
- - lightweight
  - resource system
  - scene system
- - editor to easily edit scenes
- - easy-to-use code editor.
+ - editor to edit scenes
+ - visual code editor.
 
 ## Usage
 
