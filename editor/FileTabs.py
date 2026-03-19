@@ -12,14 +12,15 @@ class FileTabs(QTabWidget):
         self.open_files = {}
 
     def open(self, path):
+        self.parentWidget().raise_()
         if path in self.open_files:
             self.setCurrentWidget(self.open_files[path])
             return
 
-        editor = QTextEdit()
+        editor = QPlainTextEdit()
 
         with open(path, "r", encoding="utf8") as f:
-            editor.setText(f.read())
+            editor.setPlainText(f.read())
 
         name = os.path.basename(path)
 

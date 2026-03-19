@@ -5,17 +5,22 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import *
 
 class ProjectBrowser(QTreeWidget):
-    def __init__(self, project, file_tabs):
+    def __init__(self):
         super().__init__()
 
-        self.project = project
-        self.open_file_callback = file_tabs.open
+        self.project = None
+        self.open_file_callback = None
 
+        self.setIndentation(12)
         self.setHeaderHidden(True)
-
         self.itemDoubleClicked.connect(self.open_item)
+        self.setExpandsOnDoubleClick(False)
 
-        self.populate()
+    def set_project(self, project):
+        self.project = project
+
+    def set_editor(self, editor):
+        self.open_file_callback = editor.open
 
     def populate(self):
         self.clear()
@@ -41,11 +46,12 @@ class ProjectBrowser(QTreeWidget):
             item.setData(0, Qt.ItemDataRole.UserRole, self.project.get_path(path))
             resources_root.addChild(item)
 
+        excluded = ["_.html"]
         for root, _, files in os.walk(self.project.project_path):
             for f in files:
                 full = os.path.join(root, f)
 
-                if f in scenes or f in resources or f in ["_.html"]:
+                if f in [*scenes, *resources, *excluded]:
                     continue
 
                 item = QTreeWidgetItem([f])
