@@ -1,48 +1,56 @@
 DEFAULT_SCENES = {
-    "default.hsc": [
+    "default.hsc":
         {
-            "name": "Header container",
+            "name": "default.hsc",
             "type": "div",
             "properties": {
-                "class": "title"
+                "class": "scene-root"
             },
             "content": [
                 {
-                    "name": "Title",
-                    "type": "h1",
-                    "properties": {},
-                    "content": "hello world"
+                    "name": "Header container",
+                    "type": "div",
+                    "properties": {
+                        "class": "title"
+                    },
+                    "content": [
+                        {
+                            "name": "Title",
+                            "type": "h1",
+                            "properties": {},
+                            "content": "hello world"
+                        },
+                        {
+                            "name": "Header Image",
+                            "type": "img",
+                            "properties": {
+                                "src-path": "icon.png",
+                                "alt": "Header Image"
+                            },
+                            "content": ""
+                        }
+                    ]
                 },
                 {
-                    "name": "Header Image",
-                    "type": "img",
+                    "name": "Test Bullet List",
+                    "type": "ul",
                     "properties": {
-                        "src-path": "icon.png",
-                        "alt": "Header Image"
+                        "style": {
+                            "font-size": "200%"
+                        }
                     },
-                    "content": ""
-                }
-            ]
-        },
-        {
-            "name": "Test Bullet List",
-            "type": "ul",
-            "properties": {
-                "style": {
-                    "font-size": "200%"
-                }
-            },
-            "content": [
-                {
-                    "name": "Test Point 1",
-                    "type": "li",
-                    "properties": {
-                    },
-                    "content": "lorem ipsum"
+                    "content": [
+                        {
+                            "name": "Test Point 1",
+                            "type": "li",
+                            "properties": {
+                            },
+                            "content": "lorem ipsum"
+                        }
+                    ]
                 }
             ]
         }
-    ]
 }
 DEFAULT_CONFIG = {
     "title": "New Project",

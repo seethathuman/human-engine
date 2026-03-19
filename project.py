@@ -18,11 +18,11 @@ class Project:
     def create_project(self, config: dict, scenes: dict) -> None:
         os.mkdir(self.project_path)
         with open(self.get_path("project.json"), "w") as f:
-            json.dump(config, f)
+            json.dump(config, f, indent=4)
 
         for scene, data in scenes.items():
             with open(self.get_path(scene), "w") as f:
-                json.dump({"content": data}, f)
+                json.dump(data, f, indent=4)
 
     def load_project(self) -> None:
         with open(self.get_path("project.json")) as f:
@@ -42,7 +42,7 @@ class Project:
                 resource = self.config["resources"][properties["src-path"]]
                 with open(self.get_path(resource["path"]), "rb") as f:
                     data = f.read()
-                properties["src"] = f"data:{resource["type"]};base64,{base64.b64encode(data)}"
+                properties["src"] = f"data:{resource["type"]};base64,{base64.b64encode(data).decode("utf-8")}"
                 del properties["src-path"]
             if "style" in properties:
                 properties["style"] = ";".join([f"{k}:{v}" for k, v in properties["style"].items()])
