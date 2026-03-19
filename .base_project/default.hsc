@@ -1,4 +1,9 @@
 {
+    "name": "default.hsc",
+    "type": "div",
+    "properties": {
+        "class": "scene-root"
+    },
     "content": [
         {
             "name": "Header container",
