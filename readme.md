@@ -18,10 +18,9 @@ to run a webpage.
 ## Usage
 
 ### Requirements
- - beautifulsoup4 (parse html)
- - lxml
- - PySide6 (qt gui editor)
- - flask (web preview)
+ - beautifulsoup4
+ - PySide6
+ - flask 
 
 ### Install
 
