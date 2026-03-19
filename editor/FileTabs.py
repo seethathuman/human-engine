@@ -2,6 +2,8 @@
 
 import os.path
 from PySide6.QtWidgets import *
+from PySide6.QtGui import QPixmap
+from PySide6.QtCore import Qt
 
 class FileTabs(QTabWidget):
     def __init__(self):
@@ -17,10 +19,24 @@ class FileTabs(QTabWidget):
             self.setCurrentWidget(self.open_files[path])
             return
 
-        editor = QPlainTextEdit()
+        try:
+            with open(path, "r", encoding="utf8") as f:
+                data = f.read()
+        except UnicodeDecodeError:
+            with open(path, "rb") as f:
+                data = f.read()
 
-        with open(path, "r", encoding="utf8") as f:
-            editor.setPlainText(f.read())
+        if isinstance(data, str):
+            editor = QPlainTextEdit()
+            editor.setPlainText(data)
+        else:
+            pixmap = QPixmap(path)
+            if not pixmap.isNull():
+                editor = ImageView(pixmap)
+            else:
+                editor = QPlainTextEdit()
+                editor.setPlainText(str(data))
+                editor.setEnabled(False)
 
         name = os.path.basename(path)
 
@@ -37,3 +53,18 @@ class FileTabs(QTabWidget):
                 del self.open_files[k]
 
         self.removeTab(index)
+
+class ImageView(QLabel):
+    def __init__(self, pixmap):
+        super().__init__()
+        self.orig_pixmap = pixmap
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setMinimumSize(1, 1)
+
+    def resizeEvent(self, event):
+        scaled = self.orig_pixmap.scaled(
+            self.contentsRect().size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        self.setPixmap(scaled)

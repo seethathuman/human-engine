@@ -149,6 +149,18 @@ class Editor(QMainWindow):
         print("clean exit")
 
 def exception_hook(exc_type: type[BaseException], exc_value: BaseException, exc_traceback):
+    if isinstance(exc_value, KeyboardInterrupt):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Icon.Critical)
+        msg.setWindowTitle(f"{exc_type.__name__}")
+        msg.setText(f"Do you want to quit without saving progress?")
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg.setDefaultButton(QMessageBox.StandardButton.No)
+        result = msg.exec()
+        if result == QMessageBox.StandardButton.Yes:
+            QApplication.quit()
+        return
+
     print("Exception caught!")
     error_msg = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
     traceback.print_exception(exc_type, exc_value, exc_traceback)
