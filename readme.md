@@ -1,4 +1,5 @@
 # Human Engine
+lightweight game engine based on python3 and Qt6
 
 ## Introduction
 
