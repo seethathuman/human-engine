@@ -12,8 +12,8 @@ class SceneTree(QTreeWidget):
         self.objects = []
         self.setIndentation(12)
         self.setHeaderHidden(True)
-        self.itemDoubleClicked.connect(self.open_item)
-        self.setExpandsOnDoubleClick(False)
+        self.setExpandsOnDoubleClick(True)
+        self.itemClicked.connect(self.open_item)
 
     def set_scene(self, scene):
         self.scene = scene

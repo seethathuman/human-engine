@@ -9,7 +9,10 @@
             "name": "Header container",
             "type": "div",
             "properties": {
-                "class": "title"
+                "class": "title",
+                "style": {
+                    "display": "flex%"
+                }
             },
             "content": [
                 {

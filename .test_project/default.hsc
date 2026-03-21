@@ -9,14 +9,21 @@
             "name": "Header container",
             "type": "div",
             "properties": {
-                "class": "title"
+                "class": "title",
+                "style": {
+                    "display": "flex"
+                }
             },
             "content": [
                 {
                     "name": "Title",
                     "type": "h1",
-                    "properties": {},
-                    "content": "hello world!"
+                    "properties": {
+                        "style": {}
+                    },
+                    "content": "hello world",
+                    "id": "",
+                    "class": ""
                 },
                 {
                     "name": "Header Image",
