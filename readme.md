@@ -1,6 +1,4 @@
 # Human Engine
-lightweight game engine based on python3 and Qt6
-
 ## Introduction
 
 Human Engine is a lightweight game engine based on Qt and Python3 
